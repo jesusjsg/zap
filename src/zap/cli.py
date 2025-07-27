@@ -2,6 +2,8 @@ import click
 from pathlib import Path
 from datetime import datetime
 
+from click.types import _is_file_like
+
 
 def _validate_extension(file: Path, ext: str | None) -> bool:
     if ext is None:
@@ -25,6 +27,12 @@ def _print_output(file: Path, long: bool = False) -> None:
     click.secho(name, fg=color)
 
 
+def _validate_path(path: Path) -> None:
+    if not path.exists():
+        click.echo(f"{path} does not exist")
+        raise SystemExit(1)
+
+
 @click.group()
 def cli():
     """Zap is a tool to say goodbye to your files"""
@@ -34,14 +42,12 @@ def cli():
 @cli.command()
 @click.option("-e", "--ext", type=click.STRING, help="Listing files with extension")
 @click.option("-l", "--long", is_flag=True, help="Long listing")
-@click.argument("dir", type=click.Path(exists=True, path_type=Path), default=".")
-def zl(dir: Path, ext: str | None, long: bool) -> None:
+@click.argument("path", type=click.Path(exists=True, path_type=Path), default=".")
+def zl(path: Path, ext: str | None, long: bool) -> None:
     """List current directory files"""
-    if not dir.is_dir():
-        click.echo(f"{dir} is not a directory")
-        raise SystemExit(1)
+    _validate_path(path)
 
-    for file in dir.iterdir():
+    for file in path.iterdir():
         if file.is_dir() and ext:
             continue
         if file.is_file() and not _validate_extension(file, ext):
@@ -59,6 +65,22 @@ def zl(dir: Path, ext: str | None, long: bool) -> None:
 @click.argument("path", type=click.Path(exists=True, path_type=Path))
 def zd(path: Path, ext: str | None) -> None:
     """Zap current directory files"""
+    _validate_path(path)
+
+    if ext:
+        for file in path.iterdir():
+            if file.is_file() and not _validate_extension(file, ext):
+                continue
+            if file.is_dir():
+                continue
+            file.unlink()
+        click.secho(f"Zapped files with extension {ext}")
+    else:
+        for file in path.iterdir():
+            if file.is_file():
+                file.unlink()
+        path.rmdir()
+        click.secho(f"Zapped dir {path.name}")
 
 
 @cli.command()
