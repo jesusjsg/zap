@@ -67,7 +67,23 @@ def zd(path: Path, ext: str | None) -> None:
 
 
 @cli.command()
-@click.option("-e", "--ext")
+@click.option("-e", "--ext", type=click.STRING, help="File type to order")
+@click.argument(
+    "path", type=click.Path(exists=True, path_type=Path), default="."
+)
+def zc(path: Path, ext: str | None) -> None:
+    """Clean your current directory"""
+    validate_path(path)
+    home_path = Path.home()
+
+    for file in path.iterdir():
+        if file.is_file() and validate_extension(file, ext):
+            name = file.stem
+            extension = file.suffix
+            print(f"Cleaning {name} with extension {extension}")
+
+
+@cli.command()
 def version():
     """Version of zap"""
     click.secho("zap version 0.0.1", fg="green")
