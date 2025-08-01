@@ -3,9 +3,7 @@ from datetime import datetime
 
 
 def validate_extension(file: Path, ext: str | None) -> bool:
-    if ext is None:
-        return True
-    return file.suffix.lower() == ext.lower()
+    return True if ext is None else file.suffix.lower() == ext.lower()
 
 
 def get_file_info(file: Path) -> tuple[int, str, str, str, str]:
@@ -20,6 +18,4 @@ def get_file_info(file: Path) -> tuple[int, str, str, str, str]:
 
 
 def validate_path(path: Path) -> bool:
-    if not path.exists():
-        return False
-    return True
+    return True if path.exists() else False
