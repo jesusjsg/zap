@@ -1,15 +1,6 @@
 import click
 from pathlib import Path
-from .utils import validate_extension, get_file_info, validate_path
-
-
-def _print_output(file: Path, long: bool = False) -> None:
-    if long:
-        size, user, group, date, name = get_file_info(file)
-        click.secho(f"{size}\t {user} \t {group} \t {date}\t", nl=False)
-    name = f"{file.name}" if file.is_dir() else file.name
-    color = "blue" if file.is_dir() else "green"
-    click.secho(name, fg=color)
+from .utils import validate_extension, print_output, validate_path
 
 
 @click.group()
@@ -20,9 +11,9 @@ def cli():
 
 @cli.command()
 @click.option(
-    "-e", "--ext", type=click.STRING, help="Listing files with extension"
+    "--ext", "-e", type=click.STRING, help="Listing files with extension"
 )
-@click.option("-l", "--long", is_flag=True, help="Long listing")
+@click.option("--long", "-l", is_flag=True, help="Long listing")
 @click.argument(
     "path", type=click.Path(exists=True, path_type=Path), default="."
 )
@@ -30,18 +21,19 @@ def zl(path: Path, ext: str | None, long: bool) -> None:
     """List current directory files"""
     validate_path(path)
 
-    for file in path.iterdir():
+    for file in sorted(path.iterdir()):
         if file.is_dir() and ext:
             continue
         if file.is_file() and not validate_extension(file, ext):
             continue
-        _print_output(file, long)
+        name, color = print_output(file, long)
+        click.secho(f"{name}", fg=color)
 
 
 @cli.command()
 @click.option(
-    "-e",
     "--ext",
+    "-e",
     type=click.STRING,
     help="File extension to zap the files (e.g .py)",
 )
@@ -67,20 +59,24 @@ def zd(path: Path, ext: str | None) -> None:
 
 
 @cli.command()
-@click.option("-e", "--ext", type=click.STRING, help="File type to order")
+@click.option("--ext", "-e", type=click.STRING, help="File type to order")
 @click.argument(
-    "path", type=click.Path(exists=True, path_type=Path), default="."
+    "path",
+    type=click.Path(exists=True, path_type=Path),
+    default=Path.home().joinpath("Downloads"),
 )
 def zc(path: Path, ext: str | None) -> None:
     """Clean your current directory"""
     validate_path(path)
-    home_path = Path.home()
+    home_path = path.home()
 
     for file in path.iterdir():
         if file.is_file() and validate_extension(file, ext):
-            name = file.stem
-            extension = file.suffix
-            print(f"Cleaning {name} with extension {extension}")
+            extension = file.suffix.lower().lstrip(".")
+            destination_path = home_path.joinpath("Documents", extension)
+            destination_path.mkdir(parents=True, exist_ok=True)
+            output = destination_path.joinpath(file.name)
+            file.rename(output)
 
 
 @cli.command()
