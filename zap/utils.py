@@ -19,3 +19,13 @@ def get_file_info(file: Path) -> tuple[int, str, str, str, str]:
 
 def validate_path(path: Path) -> bool:
     return True if path.exists() else False
+
+
+def print_output(file: Path, long: bool = False) -> tuple[str, str]:
+    if long:
+        size, user, group, date, name = get_file_info(file)
+        formated_line = f"{name:<20} {size:<10} {user:<10} {group:<10} {date}"
+        return formated_line, "cyan"
+    name = f"{file.name}" if file.is_dir() else file.name
+    color = "blue" if file.is_dir() else "green"
+    return name, color
