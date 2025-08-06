@@ -1,6 +1,8 @@
 import click
 from pathlib import Path
-from .utils import validate_extension, print_output, validate_path
+
+from zap.core import clean_and_move_files, delete_files, list_files
+from .utils import print_output, validate_path
 
 
 @click.group()
@@ -20,13 +22,7 @@ def cli():
 def zl(path: Path, ext: str | None, long: bool) -> None:
     """List current directory files"""
     validate_path(path)
-
-    for file in sorted(path.iterdir()):
-        if file.is_dir() and ext:
-            continue
-        if file.is_file() and not validate_extension(file, ext):
-            continue
-        name, color = print_output(file, long)
+    for name, color in list_files(path, ext, long, print_output):
         click.secho(f"{name}", fg=color)
 
 
@@ -41,21 +37,8 @@ def zl(path: Path, ext: str | None, long: bool) -> None:
 def zd(path: Path, ext: str | None) -> None:
     """Zap current directory files"""
     validate_path(path)
-
-    if ext:
-        for file in path.iterdir():
-            if file.is_file() and not validate_extension(file, ext):
-                continue
-            if file.is_dir():
-                continue
-            file.unlink()
-        click.secho(f"Zapped files with extension {ext}")
-    else:
-        for file in path.iterdir():
-            if file.is_file():
-                file.unlink()
-        path.rmdir()
-        click.secho(f"Zapped dir {path.name}")
+    result = delete_files(path, ext)
+    click.secho(result, fg="green")
 
 
 @cli.command()
@@ -66,17 +49,12 @@ def zd(path: Path, ext: str | None) -> None:
     default=Path.home().joinpath("Downloads"),
 )
 def zc(path: Path, ext: str | None) -> None:
-    """Clean your current directory"""
+    """Clean your downloads directory"""
     validate_path(path)
-    home_path = path.home()
-
-    for file in path.iterdir():
-        if file.is_file() and validate_extension(file, ext):
-            extension = file.suffix.lower().lstrip(".")
-            destination_path = home_path.joinpath("Documents", extension)
-            destination_path.mkdir(parents=True, exist_ok=True)
-            output = destination_path.joinpath(file.name)
-            file.rename(output)
+    results = clean_and_move_files(path, ext)
+    for m in results:
+        fg = "green" if m.startswith("Moved") else "yellow"
+        click.secho(m, fg=fg)
 
 
 @cli.command()
